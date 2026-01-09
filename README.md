@@ -1,6 +1,18 @@
 # excalidraw-cli
+<p>
+  <a href="https://www.npmjs.com/package/@swiftlysingh/excalidraw-cli"><img src="https://img.shields.io/npm/v/@swiftlysingh/excalidraw-cli" alt="npm version"></a>
+  <a href="https://github.com/swiftlysingh/excalidraw-cli/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"></a>
+</p>
 
-Create Excalidraw flowcharts and diagrams from text-based DSL or JSON.
+<p align="center">
+  <img alt="image" src="https://github.com/user-attachments/assets/5af4b002-bd69-4187-8836-84135685117a" />
+</p>
+
+<p align="center">
+  Create Excalidraw flowcharts and diagrams from text-based DSL or JSON.
+</p>
+
+
 
 ## Features
 
@@ -145,6 +157,19 @@ const input = {
 };
 const json2 = await createFlowchartFromJSON(input);
 ```
+
+## Examples
+
+Here are some flowcharts created with excalidraw-cli:
+
+### Simple Flow
+![Simple Flow](assets/up.png)
+
+### iOS App Architecture
+![iOS App Architecture](assets/ios-app-architecture.png)
+
+### LeetCode Problem Solving Flow
+![LeetCode Flow](assets/leetcode.png)
 
 ## Output
 
