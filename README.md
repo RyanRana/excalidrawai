@@ -12,14 +12,21 @@ Create Excalidraw flowcharts and diagrams from text-based DSL or JSON.
 
 ## Installation
 
+### From Source (Local Development)
+
 ```bash
-npm install -g excalidraw-cli
+git clone https://github.com/swiftlysingh/excalidraw-cli.git
+cd excalidraw-cli
+npm install
+npm run build
+npm link  # Makes 'excalidraw-cli' available globally
 ```
 
-Or use directly with npx:
+### Direct Usage (No Install)
 
 ```bash
-npx excalidraw-cli create --inline "[A] -> [B]" -o diagram.excalidraw
+# Run directly with node
+node dist/cli.js create --inline "[A] -> [B]" -o diagram.excalidraw
 ```
 
 ## Quick Start
