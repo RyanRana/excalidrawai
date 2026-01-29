@@ -7,7 +7,10 @@
 import express from 'express';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { createFlowchartFromPrompt } from '../dist/index.js';
+import {
+  createFlowchartFromPromptWithSource,
+  editFlowchartFromSource,
+} from '../dist/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -15,17 +18,54 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static(join(__dirname)));
 
 app.post('/api/generate', async (req, res) => {
-  const prompt = req.body?.prompt;
-  if (!prompt || typeof prompt !== 'string') {
-    return res.status(400).json({ error: 'Missing or invalid prompt' });
-  }
   const apiKey = req.body?.apiKey && typeof req.body.apiKey === 'string' ? req.body.apiKey.trim() : null;
   if (!apiKey) {
     return res.status(400).json({ error: 'API key required. Enter your xAI API key (get one at console.x.ai).' });
   }
+
+  const previousContent = req.body?.previousContent;
+  const format = req.body?.format;
+  const editInstruction = req.body?.editInstruction;
+
+  // Edit flow: previousContent + format + editInstruction
+  if (
+    previousContent != null &&
+    typeof previousContent === 'string' &&
+    format != null &&
+    (format === 'dsl' || format === 'json' || format === 'dot') &&
+    editInstruction != null &&
+    typeof editInstruction === 'string' &&
+    editInstruction.trim()
+  ) {
+    try {
+      const result = await editFlowchartFromSource(
+        previousContent.trim(),
+        format,
+        editInstruction.trim(),
+        { apiKey }
+      );
+      return res.json({
+        excalidraw: result.excalidraw,
+        sourceContent: result.sourceContent,
+        format: result.format,
+      });
+    } catch (err) {
+      return res.status(500).json({ error: err.message || 'Edit failed' });
+    }
+  }
+
+  // Generate flow: prompt
+  const prompt = req.body?.prompt;
+  if (!prompt || typeof prompt !== 'string') {
+    return res.status(400).json({ error: 'Missing or invalid prompt' });
+  }
   try {
-    const excalidraw = await createFlowchartFromPrompt(prompt.trim(), { apiKey });
-    res.json({ excalidraw });
+    const result = await createFlowchartFromPromptWithSource(prompt.trim(), { apiKey });
+    res.json({
+      excalidraw: result.excalidraw,
+      sourceContent: result.sourceContent,
+      format: result.format,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message || 'Generation failed' });
   }

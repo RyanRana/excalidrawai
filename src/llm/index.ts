@@ -1,5 +1,6 @@
 export {
   promptToFlowchartDefinition,
+  editFlowchartDefinition,
   stripMarkdownCodeBlock,
   detectOutputFormat,
   type GrokPromptOptions,

@@ -143,3 +143,54 @@ export async function promptToFlowchartDefinition(
   const format = detectOutputFormat(stripped);
   return { content: stripped, format };
 }
+
+const EDIT_SYSTEM_PROMPT = `You are a flowchart editor. The user will provide:
+1. An existing flowchart definition (DSL, JSON, or DOT).
+2. An edit instruction (e.g. "add a step after X", "rename A to B", "remove the decision node").
+
+Output ONLY the complete updated flowchart in the SAME format as the input. No explanation, no markdown fences, no extra text.
+Preserve the format: if input is DSL, output DSL; if JSON, output JSON; if DOT, output DOT.`;
+
+export async function editFlowchartDefinition(
+  previousContent: string,
+  editInstruction: string,
+  options: GrokPromptOptions = {}
+): Promise<{ content: string; format: PromptOutputFormat }> {
+  const apiKey = (options.apiKey ?? process.env.XAI_API_KEY)?.trim();
+  if (!apiKey) throw new Error('xAI API key is required. Set XAI_API_KEY or pass apiKey in options.');
+
+  const format = options.preferredFormat ?? detectOutputFormat(previousContent.trim());
+  const hint = formatHint(format);
+  const userContent = `Current flowchart (${format.toUpperCase()}):\n\n${previousContent}\n\nEdit instruction: ${editInstruction}`;
+  const messages = [
+    { role: 'system', content: EDIT_SYSTEM_PROMPT + hint },
+    { role: 'user', content: userContent },
+  ];
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` };
+  const base = xaiBase();
+  const chatUrl = base + '/chat/completions';
+  const model = options.model ?? process.env.XAI_MODEL ?? DEFAULT_MODEL;
+  const chatBody = { model, messages, max_tokens: 2048, temperature: 0.2, stream: false };
+
+  const response = await callGrok(chatUrl, chatBody, headers);
+
+  if (!response.ok) {
+    const errBody = await response.text();
+    let msg = `xAI API error ${response.status}: ${response.statusText}`;
+    try {
+      const parsed = JSON.parse(errBody);
+      if (parsed.error?.message) msg = parsed.error.message;
+    } catch {
+      if (errBody) msg += ` — ${errBody.slice(0, 200)}`;
+    }
+    throw new Error(msg);
+  }
+
+  const data = (await response.json()) as Record<string, unknown>;
+  const content = pullContentFromResponse(data)?.trim();
+  if (!content) throw new Error('xAI API returned no content.');
+
+  const stripped = stripMarkdownCodeBlock(content);
+  const detectedFormat = detectOutputFormat(stripped);
+  return { content: stripped, format: detectedFormat };
+}

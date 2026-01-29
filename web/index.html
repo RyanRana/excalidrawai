@@ -107,6 +107,18 @@
     .download-wrap a:hover {
       background: #eee;
     }
+    .clear-wrap {
+      text-align: center;
+      margin-top: 8px;
+    }
+    .clear-wrap a {
+      color: #0066cc;
+      text-decoration: none;
+      font-size: 0.9375rem;
+    }
+    .clear-wrap a:hover {
+      text-decoration: underline;
+    }
     .footer {
       margin-top: 2rem;
       font-size: 0.8125rem;
@@ -143,11 +155,14 @@
       />
       <button type="submit" id="btn">Generate</button>
     </form>
+    <div class="clear-wrap" id="clearWrap" hidden>
+      <a href="#" id="clearLink">Clear</a>
+    </div>
     <p class="message" id="msg" aria-live="polite"></p>
     <div class="download-wrap" id="downloadWrap" hidden>
       <a id="downloadLink" href="#" download="flowchart.excalidraw">Download .excalidraw</a>
     </div>
-    <p class="footer">Built by <a href="https://www.ryanrana.com/" target="_blank" rel="noopener">Ryan Rana</a></p>
+    <p class="footer">Built by <a href="https://www.ryanrana.com/" target="_blank" rel="noopener">Ryan Rana</a>, forked from <a href="https://github.com/swiftlysingh/excalidraw-cli" target="_blank" rel="noopener">swiftlysingh</a>.</p>
   </div>
   <script>
     const form = document.getElementById('f');
@@ -156,6 +171,11 @@
     const msg = document.getElementById('msg');
     const downloadWrap = document.getElementById('downloadWrap');
     const downloadLink = document.getElementById('downloadLink');
+    const clearWrap = document.getElementById('clearWrap');
+    const clearLink = document.getElementById('clearLink');
+
+    let lastSourceContent = '';
+    let lastFormat = 'dsl';
 
     function setMessage(text, isError) {
       msg.textContent = text;
@@ -169,43 +189,105 @@
       setMessage((err || 'Something went wrong') + hint, true);
     }
 
+    function switchToEditMode() {
+      promptInput.placeholder = 'What to change?';
+      btn.textContent = 'Apply edit';
+      clearWrap.hidden = false;
+    }
+
+    function switchToGenerateMode() {
+      lastSourceContent = '';
+      promptInput.placeholder = 'Describe your flowchart...';
+      btn.textContent = 'Generate';
+      promptInput.value = '';
+      clearWrap.hidden = true;
+      setMessage('');
+    }
+
+    function showResult(data) {
+      const blob = new Blob([data.excalidraw], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      downloadLink.href = url;
+      downloadLink.download = 'flowchart.excalidraw';
+      downloadWrap.hidden = false;
+      lastSourceContent = data.sourceContent || '';
+      lastFormat = data.format || 'dsl';
+      promptInput.value = '';
+      switchToEditMode();
+    }
+
+    clearLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchToGenerateMode();
+    });
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const apikey = document.getElementById('apikey').value.trim();
-      const prompt = promptInput.value.trim();
+      const text = promptInput.value.trim();
       if (!apikey) {
         setMessage('Enter your xAI API key (get one at console.x.ai).', true);
         return;
       }
-      if (!prompt) {
-        setMessage('Describe your flowchart.', true);
+
+      btn.disabled = true;
+
+      if (lastSourceContent) {
+        if (!text) {
+          setMessage('Describe what to change.', true);
+          btn.disabled = false;
+          return;
+        }
+        setMessage('Applying edit…');
+        try {
+          const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              previousContent: lastSourceContent,
+              format: lastFormat,
+              editInstruction: text,
+              apiKey: apikey,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            setErrorWithHint(data.error);
+            return;
+          }
+          setMessage('Updated. Download again if needed.');
+          showResult(data);
+        } catch (err) {
+          setErrorWithHint(err.message || 'Network error');
+        } finally {
+          btn.disabled = false;
+        }
         return;
       }
 
-      btn.disabled = true;
+      if (!text) {
+        setMessage('Describe your flowchart.', true);
+        btn.disabled = false;
+        return;
+      }
+
       downloadWrap.hidden = true;
+      clearWrap.hidden = true;
       setMessage('Generating…');
 
       try {
-        const body = { prompt, apiKey: apikey };
         const res = await fetch('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
+          body: JSON.stringify({ prompt: text, apiKey: apikey }),
         });
         const data = await res.json();
-
         if (!res.ok) {
           setErrorWithHint(data.error);
           return;
         }
-
-        const blob = new Blob([data.excalidraw], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        downloadLink.href = url;
-        downloadLink.download = 'flowchart.excalidraw';
-        downloadWrap.hidden = false;
         setMessage('Done. Download below.');
+        showResult(data);
       } catch (err) {
         setErrorWithHint(err.message || 'Network error');
       } finally {

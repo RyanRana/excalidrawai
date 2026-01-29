@@ -5,8 +5,9 @@ import { generateExcalidraw, serializeExcalidraw } from './generator/excalidraw-
 import { parseDSL } from './parser/dsl-parser.js';
 import { parseJSON, parseJSONString } from './parser/json-parser.js';
 import { parseDOT } from './parser/dot-parser.js';
-import { promptToFlowchartDefinition } from './llm/grok-prompt.js';
+import { promptToFlowchartDefinition, editFlowchartDefinition } from './llm/grok-prompt.js';
 import type { FlowchartGraph } from './types/dsl.js';
+import type { PromptOutputFormat } from './llm/grok-prompt.js';
 
 export type {
   FlowchartGraph,
@@ -44,6 +45,7 @@ export { DEFAULT_APP_STATE, DEFAULT_ELEMENT_STYLE } from './types/excalidraw.js'
 
 export {
   promptToFlowchartDefinition,
+  editFlowchartDefinition,
   stripMarkdownCodeBlock,
   detectOutputFormat,
   type GrokPromptOptions,
@@ -67,12 +69,10 @@ export async function createFlowchartFromJSON(input: import('./types/dsl.js').Fl
   return graphToExcalidrawString(graph);
 }
 
-export async function createFlowchartFromPrompt(
-  prompt: string,
-  options?: { apiKey?: string; model?: string; preferredFormat?: import('./llm/grok-prompt.js').PromptOutputFormat }
+async function contentToExcalidrawString(
+  content: string,
+  format: PromptOutputFormat
 ): Promise<string> {
-  const { content, format } = await promptToFlowchartDefinition(prompt, options ?? {});
-
   if (format === 'json') {
     const graph = parseJSONString(content);
     return graphToExcalidrawString(graph);
@@ -81,7 +81,43 @@ export async function createFlowchartFromPrompt(
     const graph = parseDOT(content);
     return graphToExcalidrawString(graph);
   }
-
   const graph = parseDSL(content);
   return graphToExcalidrawString(graph);
+}
+
+export async function createFlowchartFromPrompt(
+  prompt: string,
+  options?: { apiKey?: string; model?: string; preferredFormat?: PromptOutputFormat }
+): Promise<string> {
+  const { content, format } = await promptToFlowchartDefinition(prompt, options ?? {});
+  return contentToExcalidrawString(content, format);
+}
+
+export interface CreateFlowchartFromPromptResult {
+  excalidraw: string;
+  sourceContent: string;
+  format: PromptOutputFormat;
+}
+
+export async function createFlowchartFromPromptWithSource(
+  prompt: string,
+  options?: { apiKey?: string; model?: string; preferredFormat?: PromptOutputFormat }
+): Promise<CreateFlowchartFromPromptResult> {
+  const { content, format } = await promptToFlowchartDefinition(prompt, options ?? {});
+  const excalidraw = await contentToExcalidrawString(content, format);
+  return { excalidraw, sourceContent: content, format };
+}
+
+export async function editFlowchartFromSource(
+  previousContent: string,
+  format: PromptOutputFormat,
+  editInstruction: string,
+  options?: { apiKey?: string; model?: string }
+): Promise<CreateFlowchartFromPromptResult> {
+  const { content, format: outFormat } = await editFlowchartDefinition(previousContent, editInstruction, {
+    ...options,
+    preferredFormat: format,
+  });
+  const excalidraw = await contentToExcalidrawString(content, outFormat);
+  return { excalidraw, sourceContent: content, format: outFormat };
 }
