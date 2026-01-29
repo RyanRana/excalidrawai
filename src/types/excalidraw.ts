@@ -216,7 +216,7 @@ export const DEFAULT_APP_STATE: ExcalidrawAppState = {
 export const DEFAULT_ELEMENT_STYLE = {
   strokeColor: '#1e1e1e',
   backgroundColor: 'transparent',
-  fillStyle: 'solid' as ExcalidrawFillStyle,
+  fillStyle: 'cross-hatch' as ExcalidrawFillStyle,
   strokeWidth: 2,
   strokeStyle: 'solid' as ExcalidrawStrokeStyle,
   roughness: 1,

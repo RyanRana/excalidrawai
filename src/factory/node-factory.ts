@@ -12,21 +12,23 @@ import type {
   ExcalidrawBoundElement,
 } from '../types/excalidraw.js';
 import type { LayoutedNode, NodeStyle } from '../types/dsl.js';
+import { DEFAULT_NODE_PALETTE } from '../types/dsl.js';
 
 /**
- * Map DSL style to Excalidraw properties
+ * Map DSL style to Excalidraw properties; use default palette by node type when style is missing
  */
-function mapStyle(style?: NodeStyle): Partial<ExcalidrawRectangle> {
-  if (!style) return {};
+function mapStyle(node: LayoutedNode): Partial<ExcalidrawRectangle> {
+  const style = node.style;
+  const defaults = DEFAULT_NODE_PALETTE[node.type];
 
   return {
-    strokeColor: style.strokeColor,
-    backgroundColor: style.backgroundColor,
-    strokeWidth: style.strokeWidth,
-    strokeStyle: style.strokeStyle,
-    fillStyle: style.fillStyle,
-    opacity: style.opacity,
-    roughness: style.roughness,
+    strokeColor: style?.strokeColor ?? defaults.strokeColor,
+    backgroundColor: style?.backgroundColor ?? defaults.backgroundColor,
+    strokeWidth: style?.strokeWidth,
+    strokeStyle: style?.strokeStyle,
+    fillStyle: style?.fillStyle,
+    opacity: style?.opacity,
+    roughness: style?.roughness,
   };
 }
 
@@ -37,7 +39,7 @@ export function createRectangle(
   node: LayoutedNode,
   boundElements?: ExcalidrawBoundElement[]
 ): ExcalidrawRectangle {
-  const styleProps = mapStyle(node.style);
+  const styleProps = mapStyle(node);
 
   return {
     ...createBaseElement('rectangle', node.x, node.y, node.width, node.height, {
@@ -57,7 +59,7 @@ export function createDiamond(
   node: LayoutedNode,
   boundElements?: ExcalidrawBoundElement[]
 ): ExcalidrawDiamond {
-  const styleProps = mapStyle(node.style);
+  const styleProps = mapStyle(node);
 
   return {
     ...createBaseElement('diamond', node.x, node.y, node.width, node.height, {
@@ -77,7 +79,7 @@ export function createEllipse(
   node: LayoutedNode,
   boundElements?: ExcalidrawBoundElement[]
 ): ExcalidrawEllipse {
-  const styleProps = mapStyle(node.style);
+  const styleProps = mapStyle(node);
 
   return {
     ...createBaseElement('ellipse', node.x, node.y, node.width, node.height, {

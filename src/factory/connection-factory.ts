@@ -12,20 +12,19 @@ import type {
   ExcalidrawBoundElement,
 } from '../types/excalidraw.js';
 import type { LayoutedEdge, LayoutedNode, EdgeStyle } from '../types/dsl.js';
+import { DEFAULT_EDGE_COLOR } from '../types/dsl.js';
 
 /**
- * Map DSL edge style to Excalidraw properties
+ * Map DSL edge style to Excalidraw properties; use default arrow color when style is missing
  */
 function mapEdgeStyle(style?: EdgeStyle): Partial<ExcalidrawArrow> {
-  if (!style) return {};
-
   return {
-    strokeColor: style.strokeColor,
-    strokeWidth: style.strokeWidth,
-    strokeStyle: style.strokeStyle,
-    roughness: style.roughness,
-    startArrowhead: style.startArrowhead ?? null,
-    endArrowhead: style.endArrowhead ?? 'arrow',
+    strokeColor: style?.strokeColor ?? DEFAULT_EDGE_COLOR,
+    strokeWidth: style?.strokeWidth,
+    strokeStyle: style?.strokeStyle,
+    roughness: style?.roughness,
+    startArrowhead: style?.startArrowhead ?? null,
+    endArrowhead: style?.endArrowhead ?? 'arrow',
   };
 }
 

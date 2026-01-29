@@ -154,6 +154,24 @@ export const DEFAULT_LAYOUT_OPTIONS: LayoutOptions = {
 };
 
 /**
+ * Default node colors by type (flowchart semantics)
+ */
+const STROKE_BLACK = '#1e1e1e';
+
+export const DEFAULT_NODE_PALETTE: Record<NodeType, Pick<NodeStyle, 'backgroundColor' | 'strokeColor'>> = {
+  ellipse: { backgroundColor: '#b5e48c', strokeColor: STROKE_BLACK },
+  rectangle: { backgroundColor: '#a8dadc', strokeColor: STROKE_BLACK },
+  diamond: { backgroundColor: '#ffd166', strokeColor: STROKE_BLACK },
+  database: { backgroundColor: '#cdb4db', strokeColor: STROKE_BLACK },
+  image: { backgroundColor: 'transparent', strokeColor: STROKE_BLACK },
+};
+
+/**
+ * Default arrow/edge color when no style is set (black)
+ */
+export const DEFAULT_EDGE_COLOR = STROKE_BLACK;
+
+/**
  * JSON input format for programmatic API
  */
 export interface FlowchartInput {
