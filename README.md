@@ -6,4 +6,4 @@ This project is built on **[excalidraw-cli](https://github.com/swiftlysingh/exca
 - **Original repo:** [https://github.com/swiftlysingh/excalidraw-cli](https://github.com/swiftlysingh/excalidraw-cli)  
 
 ---
-I added natural language and iteration. I also made UI and hosted.
+I added natural language, color and iteration. I also made UI and hosted.
