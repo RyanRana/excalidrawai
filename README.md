@@ -16,6 +16,7 @@
 
 ## Features
 
+- **Natural language prompts** via xAI Grok — describe a flowchart in plain English and get Excalidraw output
 - **Text-based DSL** for quick flowchart creation
 - **JSON API** for programmatic use
 - **Auto-layout** using ELK.js (Eclipse Layout Kernel)
@@ -40,6 +41,16 @@ npm run build
 npm link  # Makes 'excalidraw-cli' available globally
 ```
 
+### Minimal web UI (production-ready)
+
+White frontend: enter your xAI API key, describe your flowchart, generate, then download the `.excalidraw` file. **No server-side .env key** — users supply their own key in the app (get one at [console.x.ai](https://console.x.ai)).
+
+```bash
+npm run build && npm run web
+```
+
+Open [http://localhost:3000](http://localhost:3000). Set `PORT` in the environment if needed (default 3000).
+
 ### Direct Usage (No Install)
 
 ```bash
@@ -48,6 +59,41 @@ node dist/cli.js create --inline "[A] -> [B]" -o diagram.excalidraw
 ```
 
 ## Quick Start
+
+### Create from natural language (xAI Grok)
+
+The CLI loads `XAI_API_KEY` from your environment. Easiest: copy `.env.example` to `.env` and add your key (get one at [console.x.ai](https://console.x.ai)). The CLI loads `.env` automatically when you run it.
+
+```bash
+cp .env.example .env
+# Edit .env and set: XAI_API_KEY=your-xai-api-key
+
+excalidraw-cli create --prompt "User login flowchart: start, enter credentials, validate, if valid go to dashboard else show error and retry" -o login.excalidraw
+```
+
+Or set it for one run: `XAI_API_KEY=your-key excalidraw-cli create --prompt "..." -o out.excalidraw`
+
+**Do not commit `.env`** — it’s in `.gitignore`.
+
+#### What prompts work
+
+Describe the flow in plain English: steps, decisions, and how they connect. Grok turns that into DSL (or JSON/DOT), then the pipeline produces the Excalidraw file.
+
+**Good prompts (short, clear flow):**
+
+- `"Login flow: start, enter password, check valid, if yes go to dashboard else show error"`
+- `"Order process: start, add to cart, payment, then ship or cancel"`
+- `"API request: receive request, validate, fetch data, return response or error"`
+- `"User signup: (Start) then [Enter email] then [Verify] then {Verified?} yes -> [Dashboard] no -> [Resend email]"`
+- `"Decision tree: start, ask age, if under 18 redirect to parent consent else continue to signup"`
+
+**Also work:**
+
+- Naming the type of diagram: `"Flowchart for password reset: ..."`
+- Listing steps with arrows in words: `"A then B, then if C do D else E"`
+- Slightly longer descriptions: `"A simple flowchart where the user lands on a login page, enters credentials, we validate them; if valid they see the dashboard, if not we show an error and they can try again."`
+
+**Tips:** Use “start”/“end,” “if X then Y else Z,” and “then” for sequence. Decisions work best when you say “if … then … else …” or “yes/no branch.”
 
 ### Create from DSL
 
@@ -103,7 +149,8 @@ excalidraw-cli create [input] [options]
 
 **Options:**
 - `-o, --output <file>` - Output file path (default: flowchart.excalidraw)
-- `-f, --format <type>` - Input format: dsl, json (default: dsl)
+- `-f, --format <type>` - Input format: dsl, json, dot (default: dsl)
+- `-p, --prompt <text>` - Natural language prompt (uses xAI Grok; requires `XAI_API_KEY`)
 - `--inline <dsl>` - Inline DSL string
 - `--stdin` - Read from stdin
 - `-d, --direction <dir>` - Flow direction: TB, BT, LR, RL
@@ -147,7 +194,11 @@ excalidraw-cli create flowchart.json -o diagram.excalidraw
 ## Programmatic Usage
 
 ```typescript
-import { createFlowchartFromDSL, createFlowchartFromJSON } from 'excalidraw-cli';
+import {
+  createFlowchartFromDSL,
+  createFlowchartFromJSON,
+  createFlowchartFromPrompt,
+} from 'excalidraw-cli';
 
 // From DSL
 const dsl = '(Start) -> [Process] -> (End)';
@@ -162,6 +213,11 @@ const input = {
   edges: [{ from: 'a', to: 'b' }]
 };
 const json2 = await createFlowchartFromJSON(input);
+
+// From natural language (requires XAI_API_KEY)
+const excalidrawFromPrompt = await createFlowchartFromPrompt(
+  'Simple login flow: start, enter password, check valid, then dashboard or error'
+);
 ```
 
 ## Examples

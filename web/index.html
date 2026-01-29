@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Excalidraw</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23fff'/><path fill='%23111' d='M8 8h8v4H8zm8 6h8v4h-8zm-8 6h8v4H8z'/></svg>">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #fff;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      color: #111;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .wrap {
+      width: 100%;
+      max-width: 420px;
+    }
+    h1 {
+      font-weight: 500;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+      margin: 0 0 1.5rem;
+      text-align: center;
+      color: #333;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input[type="text"]::placeholder {
+      color: #999;
+    }
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      border-color: #ccc;
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.04);
+    }
+    input[type="password"] {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input[type="password"]::placeholder {
+      color: #999;
+    }
+    button {
+      padding: 14px 20px;
+      border: none;
+      border-radius: 10px;
+      background: #111;
+      color: #fff;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    button:hover { opacity: 0.88; }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .message {
+      font-size: 0.875rem;
+      color: #666;
+      text-align: center;
+      min-height: 1.25rem;
+    }
+    .message.error { color: #c00; }
+    .download-wrap {
+      text-align: center;
+      margin-top: 8px;
+    }
+    .download-wrap a {
+      display: inline-block;
+      padding: 12px 20px;
+      border-radius: 10px;
+      background: #f5f5f5;
+      color: #111;
+      text-decoration: none;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      border: 1px solid #e8e8e8;
+      transition: background 0.15s;
+    }
+    .download-wrap a:hover {
+      background: #eee;
+    }
+    .footer {
+      margin-top: 2rem;
+      font-size: 0.8125rem;
+      color: #888;
+      text-align: center;
+    }
+    .footer a {
+      color: #111;
+      text-decoration: none;
+    }
+    .footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>AI Excalidraw</h1>
+    <form id="f">
+      <input
+        type="password"
+        name="apikey"
+        id="apikey"
+        placeholder="Your xAI API key (get one at console.x.ai)"
+        autocomplete="off"
+        required
+      />
+      <input
+        type="text"
+        name="prompt"
+        id="prompt"
+        placeholder="Describe your flowchart..."
+        autocomplete="off"
+      />
+      <button type="submit" id="btn">Generate</button>
+    </form>
+    <p class="message" id="msg" aria-live="polite"></p>
+    <div class="download-wrap" id="downloadWrap" hidden>
+      <a id="downloadLink" href="#" download="flowchart.excalidraw">Download .excalidraw</a>
+    </div>
+    <p class="footer">Built by <a href="https://www.ryanrana.com/" target="_blank" rel="noopener">Ryan Rana</a></p>
+  </div>
+  <script>
+    const form = document.getElementById('f');
+    const promptInput = document.getElementById('prompt');
+    const btn = document.getElementById('btn');
+    const msg = document.getElementById('msg');
+    const downloadWrap = document.getElementById('downloadWrap');
+    const downloadLink = document.getElementById('downloadLink');
+
+    function setMessage(text, isError) {
+      msg.textContent = text;
+      msg.className = 'message' + (isError ? ' error' : '');
+    }
+
+    function setErrorWithHint(err) {
+      const hint = err && (err.includes('403') || err.includes('401'))
+        ? ' Check your key at console.x.ai.'
+        : '';
+      setMessage((err || 'Something went wrong') + hint, true);
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const apikey = document.getElementById('apikey').value.trim();
+      const prompt = promptInput.value.trim();
+      if (!apikey) {
+        setMessage('Enter your xAI API key (get one at console.x.ai).', true);
+        return;
+      }
+      if (!prompt) {
+        setMessage('Describe your flowchart.', true);
+        return;
+      }
+
+      btn.disabled = true;
+      downloadWrap.hidden = true;
+      setMessage('Generating…');
+
+      try {
+        const body = { prompt, apiKey: apikey };
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          setErrorWithHint(data.error);
+          return;
+        }
+
+        const blob = new Blob([data.excalidraw], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        downloadLink.href = url;
+        downloadLink.download = 'flowchart.excalidraw';
+        downloadWrap.hidden = false;
+        setMessage('Done. Download below.');
+      } catch (err) {
+        setErrorWithHint(err.message || 'Network error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
